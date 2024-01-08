@@ -2,6 +2,7 @@ package com.gentics.elasticsearch.client.okhttp;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -23,7 +24,7 @@ import okhttp3.ResponseBody;
 
 /**
  * Minimal Elasticsearch REST client.
- * 
+ *
  * @param <T>
  *            Response and request type
  */
@@ -37,7 +38,7 @@ public class ElasticsearchOkClient<T> extends AbstractElasticsearchClient<T> {
 
 	/**
 	 * Create a new client with a default timeout of 10s for all timeouts (connect, read and write).
-	 * 
+	 *
 	 * @param scheme
 	 * @param hostname
 	 * @param port
@@ -56,11 +57,11 @@ public class ElasticsearchOkClient<T> extends AbstractElasticsearchClient<T> {
 		super(scheme, hostname, port, username, password, certPath, caPath, connectTimeout, readTimeout, writeTimeout, verifyHostnames, parser);
 	}
 
-	public void init() {
-		this.client = createClient();
+	public void init(String scheme, List<String> hosts) {
+		this.client = createClient(scheme, hosts);
 	}
 
-	private OkHttpClient createClient() {
+	private OkHttpClient createClient(String scheme, List<String> hosts) {
 		okhttp3.OkHttpClient.Builder builder = new OkHttpClient.Builder();
 		builder.connectTimeout(connectTimeout);
 		builder.readTimeout(readTimeout);
@@ -69,6 +70,9 @@ public class ElasticsearchOkClient<T> extends AbstractElasticsearchClient<T> {
 		// Check whether custom certificate chain has been set
 		if (certPath != null && caPath != null) {
 			configureCustomSSL(builder);
+		}
+		if(hosts!=null && hosts.size()>1){
+			builder.addInterceptor(new OkHttpLoadBalancerInterceptor(scheme,hosts));
 		}
 
 		// Disable gzip
@@ -111,7 +115,7 @@ public class ElasticsearchOkClient<T> extends AbstractElasticsearchClient<T> {
 
 	/**
 	 * Return the used OK HTTP client.
-	 * 
+	 *
 	 * @return
 	 */
 	public OkHttpClient getOkHttpClient() {
@@ -136,7 +140,7 @@ public class ElasticsearchOkClient<T> extends AbstractElasticsearchClient<T> {
 
 	/**
 	 * Execute the request synchronously.
-	 * 
+	 *
 	 * @param request
 	 * @return Parsed response object
 	 * @throws HttpErrorException
@@ -164,7 +168,7 @@ public class ElasticsearchOkClient<T> extends AbstractElasticsearchClient<T> {
 
 	/**
 	 * Execute the request asynchronously.
-	 * 
+	 *
 	 * @param request
 	 * @return Single which yields the response data
 	 */
@@ -225,9 +229,16 @@ public class ElasticsearchOkClient<T> extends AbstractElasticsearchClient<T> {
 		private String password = null;
 		boolean verifyHostnames = true;
 
+		private List<String> hosts;
+
+		public Builder<T> setHosts(List<String> hosts) {
+			this.hosts = hosts;
+			return this;
+		}
+
 		/**
 		 * Verify the builder and build the client.
-		 * 
+		 *
 		 * @return
 		 */
 		public ElasticsearchOkClient<T> build() {
@@ -240,13 +251,13 @@ public class ElasticsearchOkClient<T> extends AbstractElasticsearchClient<T> {
 				certPath, caPath,
 				connectTimeout, readTimeout, writeTimeout,
 				verifyHostnames, converter);
-			client.init();
+			client.init(scheme, hosts);
 			return client;
 		}
 
 		/**
 		 * Set the protocol scheme to be used for the client (e.g.: http, https).
-		 * 
+		 *
 		 * @param scheme
 		 * @return Fluent API
 		 */
@@ -257,7 +268,7 @@ public class ElasticsearchOkClient<T> extends AbstractElasticsearchClient<T> {
 
 		/**
 		 * Set the hostname for the client.
-		 * 
+		 *
 		 * @param hostname
 		 * @return Fluent API
 		 */
@@ -268,7 +279,7 @@ public class ElasticsearchOkClient<T> extends AbstractElasticsearchClient<T> {
 
 		/**
 		 * Set the port to connect to. (e.g. 9200).
-		 * 
+		 *
 		 * @param port
 		 * @return Fluent API
 		 */
@@ -279,7 +290,7 @@ public class ElasticsearchOkClient<T> extends AbstractElasticsearchClient<T> {
 
 		/**
 		 * Set the login data to be used for authentication.
-		 * 
+		 *
 		 * @param username
 		 * @param password
 		 * @return Fluent API
@@ -292,7 +303,7 @@ public class ElasticsearchOkClient<T> extends AbstractElasticsearchClient<T> {
 
 		/**
 		 * Set connection timeout.
-		 * 
+		 *
 		 * @param connectTimeout
 		 * @return Fluent API
 		 */
@@ -303,7 +314,7 @@ public class ElasticsearchOkClient<T> extends AbstractElasticsearchClient<T> {
 
 		/**
 		 * Set read timeout for the client.
-		 * 
+		 *
 		 * @param readTimeout
 		 * @return Fluent API
 		 */
@@ -314,7 +325,7 @@ public class ElasticsearchOkClient<T> extends AbstractElasticsearchClient<T> {
 
 		/**
 		 * Set write timeout for the client.
-		 * 
+		 *
 		 * @param writeTimeout
 		 * @return Fluent API
 		 */
@@ -325,7 +336,7 @@ public class ElasticsearchOkClient<T> extends AbstractElasticsearchClient<T> {
 
 		/**
 		 * Set the path to the server certificate which should be trusted.
-		 * 
+		 *
 		 * @param path
 		 * @return Fluent API
 		 */
@@ -336,7 +347,7 @@ public class ElasticsearchOkClient<T> extends AbstractElasticsearchClient<T> {
 
 		/**
 		 * Set the path the Common Authority certificate which should be trusted.
-		 * 
+		 *
 		 * @param caPath
 		 * @return Fluent API
 		 */
@@ -347,7 +358,7 @@ public class ElasticsearchOkClient<T> extends AbstractElasticsearchClient<T> {
 
 		/**
 		 * Set the converter function used to transform the server response to T.
-		 * 
+		 *
 		 * @param converter
 		 * @return Fluent API
 		 */
@@ -358,7 +369,7 @@ public class ElasticsearchOkClient<T> extends AbstractElasticsearchClient<T> {
 
 		/**
 		 * Control hostname verification for SSL connections.
-		 * 
+		 *
 		 * @param verifyHostnames
 		 * @return Fluent API
 		 */
