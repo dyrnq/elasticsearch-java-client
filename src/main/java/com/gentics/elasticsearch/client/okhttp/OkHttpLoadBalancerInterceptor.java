@@ -54,7 +54,7 @@ public class OkHttpLoadBalancerInterceptor implements Interceptor {
         if (newHttpUrl == null) {
             return chain.proceed(originalRequest);
         }
-        System.out.println(newHttpUrl);
+
         // 获取新newRequest
         Request newRequest = builder.url(newHttpUrl).build();
         // 请求
