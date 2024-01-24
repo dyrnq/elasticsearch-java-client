@@ -14,7 +14,7 @@ import javax.net.ssl.X509TrustManager;
 import com.gentics.elasticsearch.client.AbstractElasticsearchClient;
 import com.gentics.elasticsearch.client.HttpErrorException;
 
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Single;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;

@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets;
 
 import com.gentics.elasticsearch.client.HttpErrorException;
 
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Single;
 import okhttp3.Credentials;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
