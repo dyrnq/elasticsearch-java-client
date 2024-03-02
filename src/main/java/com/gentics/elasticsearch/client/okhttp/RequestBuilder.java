@@ -26,11 +26,14 @@ public class RequestBuilder<T> {
 
 	private final String method;
 
+	private final Builder builder;
+
 	@SuppressWarnings("unchecked")
 	public RequestBuilder(String method, String path, ElasticsearchOkClient<T> client, T... json) {
 		this.client = client;
 		this.method = method;
 		this.urlBuilder = createUrlBuilder(path);
+		this.builder = createBuilder(path);
 
 		RequestBody body = null;
 		if (json != null && json.length == 1) {
@@ -51,19 +54,38 @@ public class RequestBuilder<T> {
 		this.client = client;
 		this.method = method;
 		this.urlBuilder = createUrlBuilder(path);
+		this.builder = createBuilder(path);
 		this.body = RequestBody.create(MEDIA_TYPE_NDJSON, bulkData.getBytes(StandardCharsets.UTF_8));
 	}
 
 	private okhttp3.HttpUrl.Builder createUrlBuilder(String path) {
-		return new HttpUrl.Builder()
+		okhttp3.HttpUrl.Builder httpUrl = new HttpUrl.Builder()
 			.scheme(client.getScheme())
 			.host(client.getHostname())
-			.port(client.getPort())
-			.addPathSegments(path);
+			.port(client.getPort());
+
+
+		if(path.startsWith("%3C")){
+			httpUrl.addEncodedPathSegments(path);
+		}else {
+			httpUrl.addPathSegments(path);
+		}
+		return httpUrl;
+	}
+	private Builder createBuilder(String path) {
+//		if(path.startsWith("%3C")){
+//			StringBuilder stringBuilder = new StringBuilder();
+//			stringBuilder.append(client.getScheme()).append("://").append(client.getHostname()).append(":").append(client.getPort()).append("/").append(path);
+//			return new Request.Builder().url(stringBuilder.toString());
+//		} else{
+//			new Request.Builder().url(urlBuilder.build());
+//		}
+
+		return new Request.Builder().url(urlBuilder.build());
 	}
 
 	private Request build() {
-		Builder builder = new Request.Builder().url(urlBuilder.build());
+		Builder builder = this.builder;
 		if (client.hasLogin()) {
 			builder.header("Authorization", Credentials.basic(client.getUsername(), client.getPassword()));
 		}
